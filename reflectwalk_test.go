@@ -5,6 +5,24 @@ import (
 	"testing"
 )
 
+type TestEnterExitWalker struct {
+	Locs []Location
+}
+
+func (t *TestEnterExitWalker) Enter(l Location) error {
+	if t.Locs == nil {
+		t.Locs = make([]Location, 0, 5)
+	}
+
+	t.Locs = append(t.Locs, l)
+	return nil
+}
+
+func (t *TestEnterExitWalker) Exit(l Location) error {
+	t.Locs = append(t.Locs, l)
+	return nil
+}
+
 type TestPrimitiveWalker struct {
 	Value reflect.Value
 }
@@ -54,6 +72,11 @@ func (t *TestStructWalker) StructField(sf reflect.StructField, v reflect.Value) 
 
 func TestTestStructs(t *testing.T) {
 	var raw interface{}
+	raw = new(TestEnterExitWalker)
+	if _, ok := raw.(EnterExitWalker); !ok {
+		t.Fatal("EnterExitWalker is bad")
+	}
+
 	raw = new(TestPrimitiveWalker)
 	if _, ok := raw.(PrimitiveWalker); !ok {
 		t.Fatal("PrimitiveWalker is bad")
@@ -93,6 +116,28 @@ func TestWalk_Basic(t *testing.T) {
 
 	if w.Value.Kind() != reflect.String {
 		t.Fatalf("bad: %#v", w.Value)
+	}
+}
+
+func TestWalk_EnterExit(t *testing.T) {
+	w := new(TestEnterExitWalker)
+
+	type S struct {
+		A string
+	}
+
+	data := &S{
+		A: "foo",
+	}
+
+	err := Walk(data, w)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := []Location{StructField, StructField}
+	if !reflect.DeepEqual(w.Locs, expected) {
+		t.Fatalf("Bad: %#v", w.Locs)
 	}
 }
 

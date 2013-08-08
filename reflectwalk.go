@@ -8,6 +8,12 @@ import (
 	"reflect"
 )
 
+type Location uint
+
+const (
+	StructField Location = iota
+)
+
 // PrimitiveWalker implementations are able to handle primitive values
 // within complex structures. Primitive values are numbers, strings,
 // booleans, funcs, chans.
@@ -34,6 +40,14 @@ type SliceWalker interface {
 // structs when a Walk is done.
 type StructWalker interface {
 	StructField(reflect.StructField, reflect.Value) error
+}
+
+// EnterExitWalker implementations are notified before and after
+// they walk deeper into complex structures (into struct fields,
+// into slice elements, etc.)
+type EnterExitWalker interface {
+	Enter(Location) error
+	Exit(Location) error
 }
 
 // Walk takes an arbitrary value and an interface and traverses the
@@ -135,9 +149,18 @@ func walkStruct(v reflect.Value, w interface{}) (err error) {
 			}
 		}
 
+		ew, ok := w.(EnterExitWalker)
+		if ok {
+			ew.Enter(StructField)
+		}
+
 		err = walk(f, w)
 		if err != nil {
 			return
+		}
+
+		if ok {
+			ew.Exit(StructField)
 		}
 	}
 
