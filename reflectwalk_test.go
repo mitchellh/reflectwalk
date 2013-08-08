@@ -14,6 +14,22 @@ func (t *TestPrimitiveWalker) Primitive(v reflect.Value) error {
 	return nil
 }
 
+type TestMapWalker struct {
+	Keys   []string
+	Values []string
+}
+
+func (t *TestMapWalker) MapElem(k, v reflect.Value) error {
+	if t.Keys == nil {
+		t.Keys = make([]string, 0, 1)
+		t.Values = make([]string, 0, 1)
+	}
+
+	t.Keys = append(t.Keys, k.Interface().(string))
+	t.Values = append(t.Values, v.Interface().(string))
+	return nil
+}
+
 type TestSliceWalker struct {
 	Count int
 }
@@ -41,6 +57,11 @@ func TestTestStructs(t *testing.T) {
 	raw = new(TestPrimitiveWalker)
 	if _, ok := raw.(PrimitiveWalker); !ok {
 		t.Fatal("PrimitiveWalker is bad")
+	}
+
+	raw = new(TestMapWalker)
+	if _, ok := raw.(MapWalker); !ok {
+		t.Fatal("MapWalker is bad")
 	}
 
 	raw = new(TestSliceWalker)
@@ -72,6 +93,36 @@ func TestWalk_Basic(t *testing.T) {
 
 	if w.Value.Kind() != reflect.String {
 		t.Fatalf("bad: %#v", w.Value)
+	}
+}
+
+func TestWalk_Map(t *testing.T) {
+	w := new(TestMapWalker)
+
+	type S struct {
+		Foo map[string]string
+	}
+
+	data := &S{
+		Foo: map[string]string{
+			"foo": "foov",
+			"bar": "barv",
+		},
+	}
+
+	err := Walk(data, w)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expectedK := []string{"foo", "bar"}
+	if !reflect.DeepEqual(w.Keys, expectedK) {
+		t.Fatalf("Bad keys: %#v", w.Keys)
+	}
+
+	expectedV := []string{"foov", "barv"}
+	if !reflect.DeepEqual(w.Values, expectedV) {
+		t.Fatalf("Bad values: %#v", w.Values)
 	}
 }
 

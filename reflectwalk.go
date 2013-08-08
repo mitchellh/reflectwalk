@@ -6,10 +6,18 @@ import (
 
 // PrimitiveWalker implementations are able to handle primitive values
 // within complex structures. Primitive values are numbers, strings,
-// and booleans. These primitive values are often members of more complex
+// booleans, funcs, chans.
+//
+// These primitive values are often members of more complex
 // structures (slices, maps, etc.) that are walkable by other interfaces.
 type PrimitiveWalker interface {
 	Primitive(reflect.Value) error
+}
+
+// MapWalker implementations are able to handle individual elements
+// found within a map structure.
+type MapWalker interface {
+	MapElem(k, v reflect.Value) error
 }
 
 // SliceWalker implementations are able to handle slice elements found
@@ -39,17 +47,45 @@ func walk(v reflect.Value, w interface{}) error {
 	// Primitives
 	case reflect.Bool:
 		fallthrough
+	case reflect.Chan:
+		fallthrough
+	case reflect.Func:
+		fallthrough
 	case reflect.Int:
 		fallthrough
 	case reflect.String:
 		return walkPrimitive(v, w)
+	case reflect.Map:
+		return walkMap(v, w)
 	case reflect.Slice:
 		return walkSlice(v, w)
 	case reflect.Struct:
 		return walkStruct(v, w)
 	default:
-		return nil
+		panic("unsupported type: " + k.String())
 	}
+}
+
+func walkMap(v reflect.Value, w interface{}) error {
+	for _, k := range v.MapKeys() {
+		kv := v.MapIndex(k)
+
+		if mw, ok := w.(MapWalker); ok {
+			if err := mw.MapElem(k, kv); err != nil {
+				return err
+			}
+		}
+
+		if err := walk(k, w); err != nil {
+			return err
+		}
+
+		if err := walk(kv, w); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func walkPrimitive(v reflect.Value, w interface{}) error {
