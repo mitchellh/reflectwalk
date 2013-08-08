@@ -36,6 +36,10 @@ type StructWalker interface {
 	StructField(reflect.StructField, reflect.Value) error
 }
 
+// Walk takes an arbitrary value and an interface and traverses the
+// value, calling callbacks on the interface if they are supported.
+// The interface should implement one or more of the walker interfaces
+// in this package, such as PrimitiveWalker, StructWalker, etc.
 func Walk(data, walker interface{}) error {
 	v := reflect.Indirect(reflect.ValueOf(data))
 	return walk(v, walker)
