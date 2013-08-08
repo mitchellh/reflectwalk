@@ -13,6 +13,7 @@ type Location uint
 const (
 	MapKey Location = iota
 	MapValue
+	SliceElem
 	StructField
 	WalkLoc
 )
@@ -158,8 +159,17 @@ func walkSlice(v reflect.Value, w interface{}) (err error) {
 			}
 		}
 
+		ew, ok := w.(EnterExitWalker)
+		if ok {
+			ew.Enter(SliceElem)
+		}
+
 		if err := walk(elem, w); err != nil {
 			return err
+		}
+
+		if ok {
+			ew.Exit(SliceElem)
 		}
 	}
 
