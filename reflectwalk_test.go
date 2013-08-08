@@ -140,6 +140,7 @@ func TestWalk_EnterExit(t *testing.T) {
 	}
 
 	expected := []Location{
+		WalkLoc,
 		StructField,
 		StructField,
 		StructField,
@@ -148,6 +149,7 @@ func TestWalk_EnterExit(t *testing.T) {
 		MapValue,
 		MapValue,
 		StructField,
+		WalkLoc,
 	}
 	if !reflect.DeepEqual(w.Locs, expected) {
 		t.Fatalf("Bad: %#v", w.Locs)

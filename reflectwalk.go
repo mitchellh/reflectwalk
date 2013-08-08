@@ -14,6 +14,7 @@ const (
 	MapKey Location = iota
 	MapValue
 	StructField
+	WalkLoc
 )
 
 // PrimitiveWalker implementations are able to handle primitive values
@@ -56,9 +57,22 @@ type EnterExitWalker interface {
 // value, calling callbacks on the interface if they are supported.
 // The interface should implement one or more of the walker interfaces
 // in this package, such as PrimitiveWalker, StructWalker, etc.
-func Walk(data, walker interface{}) error {
+func Walk(data, walker interface{}) (err error) {
 	v := reflect.Indirect(reflect.ValueOf(data))
-	return walk(v, walker)
+	ew, ok := walker.(EnterExitWalker)
+	if ok {
+		err = ew.Enter(WalkLoc)
+	}
+
+	if err == nil {
+		err = walk(v, walker)
+	}
+
+	if ok && err == nil {
+		err = ew.Exit(WalkLoc)
+	}
+
+	return
 }
 
 func walk(v reflect.Value, w interface{}) error {
