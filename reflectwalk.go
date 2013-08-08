@@ -11,7 +11,9 @@ import (
 type Location uint
 
 const (
-	StructField Location = iota
+	MapKey Location = iota
+	MapValue
+	StructField
 )
 
 // PrimitiveWalker implementations are able to handle primitive values
@@ -98,12 +100,26 @@ func walkMap(v reflect.Value, w interface{}) error {
 			}
 		}
 
+		ew, ok := w.(EnterExitWalker)
+		if ok {
+			ew.Enter(MapKey)
+		}
+
 		if err := walk(k, w); err != nil {
 			return err
 		}
 
+		if ok {
+			ew.Exit(MapKey)
+			ew.Enter(MapValue)
+		}
+
 		if err := walk(kv, w); err != nil {
 			return err
+		}
+
+		if ok {
+			ew.Exit(MapValue)
 		}
 	}
 

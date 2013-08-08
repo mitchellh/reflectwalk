@@ -124,10 +124,14 @@ func TestWalk_EnterExit(t *testing.T) {
 
 	type S struct {
 		A string
+		M map[string]string
 	}
 
 	data := &S{
 		A: "foo",
+		M: map[string]string{
+			"a": "b",
+		},
 	}
 
 	err := Walk(data, w)
@@ -135,7 +139,16 @@ func TestWalk_EnterExit(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected := []Location{StructField, StructField}
+	expected := []Location{
+		StructField,
+		StructField,
+		StructField,
+		MapKey,
+		MapKey,
+		MapValue,
+		MapValue,
+		StructField,
+	}
 	if !reflect.DeepEqual(w.Locs, expected) {
 		t.Fatalf("Bad: %#v", w.Locs)
 	}
