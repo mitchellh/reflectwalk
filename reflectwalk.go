@@ -31,7 +31,7 @@ type PrimitiveWalker interface {
 // MapWalker implementations are able to handle individual elements
 // found within a map structure.
 type MapWalker interface {
-	MapElem(k, v reflect.Value) error
+	MapElem(m, k, v reflect.Value) error
 }
 
 // SliceWalker implementations are able to handle slice elements found
@@ -118,7 +118,7 @@ func walkMap(v reflect.Value, w interface{}) error {
 		kv := v.MapIndex(k)
 
 		if mw, ok := w.(MapWalker); ok {
-			if err := mw.MapElem(k, kv); err != nil {
+			if err := mw.MapElem(v, k, kv); err != nil {
 				return err
 			}
 		}

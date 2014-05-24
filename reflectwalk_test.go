@@ -55,7 +55,7 @@ type TestMapWalker struct {
 	Values []string
 }
 
-func (t *TestMapWalker) MapElem(k, v reflect.Value) error {
+func (t *TestMapWalker) MapElem(m, k, v reflect.Value) error {
 	if t.Keys == nil {
 		t.Keys = make([]string, 0, 1)
 		t.Values = make([]string, 0, 1)
