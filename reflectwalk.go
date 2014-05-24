@@ -77,6 +77,10 @@ func Walk(data, walker interface{}) (err error) {
 }
 
 func walk(v reflect.Value, w interface{}) error {
+	// We preserve the original value here because if it is an interface
+	// type, we want to pass that directly into the walkPrimitive, so that
+	// we can set it.
+	originalV := v
 	if v.Kind() == reflect.Interface {
 		v = v.Elem()
 	}
@@ -97,7 +101,7 @@ func walk(v reflect.Value, w interface{}) error {
 	case reflect.Int:
 		fallthrough
 	case reflect.String:
-		return walkPrimitive(v, w)
+		return walkPrimitive(originalV, w)
 	case reflect.Map:
 		return walkMap(v, w)
 	case reflect.Slice:
