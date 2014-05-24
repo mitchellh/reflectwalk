@@ -92,6 +92,8 @@ func walk(v reflect.Value, w interface{}) error {
 		fallthrough
 	case reflect.Int:
 		fallthrough
+	case reflect.Interface:
+		fallthrough
 	case reflect.String:
 		return walkPrimitive(v, w)
 	case reflect.Map:
