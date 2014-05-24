@@ -77,6 +77,10 @@ func Walk(data, walker interface{}) (err error) {
 }
 
 func walk(v reflect.Value, w interface{}) error {
+	if v.Kind() == reflect.Interface {
+		v = v.Elem()
+	}
+
 	k := v.Kind()
 	if k >= reflect.Int && k <= reflect.Complex128 {
 		k = reflect.Int
@@ -91,8 +95,6 @@ func walk(v reflect.Value, w interface{}) error {
 	case reflect.Func:
 		fallthrough
 	case reflect.Int:
-		fallthrough
-	case reflect.Interface:
 		fallthrough
 	case reflect.String:
 		return walkPrimitive(v, w)

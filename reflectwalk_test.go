@@ -32,6 +32,15 @@ func (t *TestPrimitiveWalker) Primitive(v reflect.Value) error {
 	return nil
 }
 
+type TestPrimitiveCountWalker struct {
+	Count int
+}
+
+func (t *TestPrimitiveCountWalker) Primitive(v reflect.Value) error {
+	t.Count += 1
+	return nil
+}
+
 type TestPrimitiveReplaceWalker struct {
 	Value reflect.Value
 }
@@ -138,7 +147,7 @@ func TestWalk_Basic_Replace(t *testing.T) {
 
 	data := &S{
 		Foo: "foo",
-		Bar: []interface{}{"what"},
+		Bar: []interface{}{[]string{"what"}},
 	}
 
 	err := Walk(data, w)
@@ -149,7 +158,7 @@ func TestWalk_Basic_Replace(t *testing.T) {
 	if data.Foo != "bar" {
 		t.Fatalf("bad: %#v", data.Foo)
 	}
-	if data.Bar[0].(string) != "bar" {
+	if data.Bar[0].([]string)[0] != "bar" {
 		t.Fatalf("bad: %#v", data.Bar)
 	}
 }
@@ -192,14 +201,16 @@ func TestWalk_EnterExit(t *testing.T) {
 }
 
 func TestWalk_Interface(t *testing.T) {
-	w := new(TestPrimitiveWalker)
+	w := new(TestPrimitiveCountWalker)
 
 	type S struct {
 		Foo string
+		Bar []interface{}
 	}
 
 	var data interface{} = &S{
 		Foo: "foo",
+		Bar: []interface{}{[]string{"bar", "what"}, "baz"},
 	}
 
 	err := Walk(data, w)
@@ -207,8 +218,8 @@ func TestWalk_Interface(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	if w.Value.Kind() != reflect.String {
-		t.Fatalf("bad: %#v", w.Value)
+	if w.Count != 4 {
+		t.Fatalf("bad: %#v", w.Count)
 	}
 }
 
