@@ -11,7 +11,8 @@ import (
 type Location uint
 
 const (
-	MapKey Location = iota
+	None Location = iota
+	MapKey = iota
 	MapValue
 	SliceElem
 	StructField
