@@ -12,7 +12,7 @@ type Location uint
 
 const (
 	None Location = iota
-	MapKey = iota
+	MapKey
 	MapValue
 	SliceElem
 	StructField
