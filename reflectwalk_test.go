@@ -188,10 +188,12 @@ func TestWalk_EnterExit(t *testing.T) {
 		StructField,
 		StructField,
 		StructField,
+		Map,
 		MapKey,
 		MapKey,
 		MapValue,
 		MapValue,
+		Map,
 		StructField,
 		WalkLoc,
 	}

@@ -12,6 +12,7 @@ type Location uint
 
 const (
 	None Location = iota
+	Map
 	MapKey
 	MapValue
 	SliceElem
@@ -115,6 +116,11 @@ func walk(v reflect.Value, w interface{}) error {
 }
 
 func walkMap(v reflect.Value, w interface{}) error {
+	ew, ewok := w.(EnterExitWalker)
+	if ewok {
+		ew.Enter(Map)
+	}
+
 	for _, k := range v.MapKeys() {
 		kv := v.MapIndex(k)
 
@@ -145,6 +151,10 @@ func walkMap(v reflect.Value, w interface{}) error {
 		if ok {
 			ew.Exit(MapValue)
 		}
+	}
+
+	if ewok {
+		ew.Exit(Map)
 	}
 
 	return nil
