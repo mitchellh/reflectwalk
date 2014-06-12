@@ -40,6 +40,7 @@ type MapWalker interface {
 // SliceWalker implementations are able to handle slice elements found
 // within complex structures.
 type SliceWalker interface {
+	Slice(reflect.Value) error
 	SliceElem(int, reflect.Value) error
 }
 
@@ -176,6 +177,12 @@ func walkPrimitive(v reflect.Value, w interface{}) error {
 }
 
 func walkSlice(v reflect.Value, w interface{}) (err error) {
+	if sw, ok := w.(SliceWalker); ok {
+		if err := sw.Slice(v); err != nil {
+			return err
+		}
+	}
+
 	for i := 0; i < v.Len(); i++ {
 		elem := v.Index(i)
 

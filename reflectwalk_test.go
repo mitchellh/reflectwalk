@@ -73,7 +73,13 @@ func (t *TestMapWalker) MapElem(m, k, v reflect.Value) error {
 }
 
 type TestSliceWalker struct {
-	Count int
+	Count    int
+	SliceVal reflect.Value
+}
+
+func (t *TestSliceWalker) Slice(v reflect.Value) error {
+	t.SliceVal = v
+	return nil
 }
 
 func (t *TestSliceWalker) SliceElem(int, reflect.Value) error {
@@ -279,6 +285,10 @@ func TestWalk_Slice(t *testing.T) {
 	err := Walk(data, w)
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(w.SliceVal.Interface(), data.Foo) {
+		t.Fatalf("bad: %#v", w.SliceVal.Interface())
 	}
 
 	if w.Count != 3 {
