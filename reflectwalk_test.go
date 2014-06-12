@@ -51,8 +51,14 @@ func (t *TestPrimitiveReplaceWalker) Primitive(v reflect.Value) error {
 }
 
 type TestMapWalker struct {
+	MapVal reflect.Value
 	Keys   []string
 	Values []string
+}
+
+func (t *TestMapWalker) Map(m reflect.Value) error {
+	t.MapVal = m
+	return nil
 }
 
 func (t *TestMapWalker) MapElem(m, k, v reflect.Value) error {
@@ -242,6 +248,10 @@ func TestWalk_Map(t *testing.T) {
 	err := Walk(data, w)
 	if err != nil {
 		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(w.MapVal.Interface(), data.Foo) {
+		t.Fatalf("Bad: %#v", w.MapVal.Interface())
 	}
 
 	expectedK := []string{"foo", "bar"}

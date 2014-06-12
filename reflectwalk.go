@@ -33,6 +33,7 @@ type PrimitiveWalker interface {
 // MapWalker implementations are able to handle individual elements
 // found within a map structure.
 type MapWalker interface {
+	Map(m reflect.Value) error
 	MapElem(m, k, v reflect.Value) error
 }
 
@@ -119,6 +120,12 @@ func walkMap(v reflect.Value, w interface{}) error {
 	ew, ewok := w.(EnterExitWalker)
 	if ewok {
 		ew.Enter(Map)
+	}
+
+	if mw, ok := w.(MapWalker); ok {
+		if err := mw.Map(v); err != nil {
+			return err
+		}
 	}
 
 	for _, k := range v.MapKeys() {
