@@ -15,6 +15,7 @@ const (
 	Map
 	MapKey
 	MapValue
+	Slice
 	SliceElem
 	StructField
 	WalkLoc
@@ -177,6 +178,11 @@ func walkPrimitive(v reflect.Value, w interface{}) error {
 }
 
 func walkSlice(v reflect.Value, w interface{}) (err error) {
+	ew, ok := w.(EnterExitWalker)
+	if ok {
+		ew.Enter(Slice)
+	}
+
 	if sw, ok := w.(SliceWalker); ok {
 		if err := sw.Slice(v); err != nil {
 			return err
@@ -204,6 +210,11 @@ func walkSlice(v reflect.Value, w interface{}) (err error) {
 		if ok {
 			ew.Exit(SliceElem)
 		}
+	}
+
+	ew, ok = w.(EnterExitWalker)
+	if ok {
+		ew.Exit(Slice)
 	}
 
 	return nil
