@@ -237,6 +237,21 @@ func TestWalk_Interface(t *testing.T) {
 	}
 }
 
+func TestWalk_Interface_nil(t *testing.T) {
+	w := new(TestPrimitiveCountWalker)
+
+	type S struct {
+		Bar interface{}
+	}
+
+	var data interface{} = &S{}
+
+	err := Walk(data, w)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestWalk_Map(t *testing.T) {
 	w := new(TestMapWalker)
 

@@ -113,6 +113,13 @@ func walk(v reflect.Value, w interface{}) error {
 		return walkSlice(v, w)
 	case reflect.Struct:
 		return walkStruct(v, w)
+	case reflect.Invalid:
+		// If the original kind was an interface, just let it through.
+		if originalV.Kind() == reflect.Interface {
+			return walkPrimitive(originalV, w)
+		}
+
+		fallthrough
 	default:
 		panic("unsupported type: " + k.String())
 	}
