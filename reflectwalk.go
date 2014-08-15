@@ -5,6 +5,7 @@
 package reflectwalk
 
 import (
+	"fmt"
 	"reflect"
 )
 
@@ -121,7 +122,7 @@ func walk(v reflect.Value, w interface{}) error {
 
 		fallthrough
 	default:
-		panic("unsupported type: " + k.String())
+		return fmt.Errorf("unsupported type: %s", k.String())
 	}
 }
 
