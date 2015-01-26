@@ -61,12 +61,20 @@ type EnterExitWalker interface {
 	Exit(Location) error
 }
 
+// PointerWalker implementations are notified when the value they're
+// walking is a pointer or not. Pointer is called for _every_ value whether
+// it is a pointer or not. You can use the Exit in EnterExitWalker to
+// forget the pointer value, as every Pointer will coincide with an Exit.
+type PointerWalker interface {
+	Pointer(bool) error
+}
+
 // Walk takes an arbitrary value and an interface and traverses the
 // value, calling callbacks on the interface if they are supported.
 // The interface should implement one or more of the walker interfaces
 // in this package, such as PrimitiveWalker, StructWalker, etc.
 func Walk(data, walker interface{}) (err error) {
-	v := reflect.Indirect(reflect.ValueOf(data))
+	v := reflect.ValueOf(data)
 	ew, ok := walker.(EnterExitWalker)
 	if ok {
 		err = ew.Enter(WalkLoc)
@@ -84,6 +92,18 @@ func Walk(data, walker interface{}) (err error) {
 }
 
 func walk(v reflect.Value, w interface{}) error {
+	// Determine if we're receiving a pointer and if so notify the walker.
+	pointer := false
+	if v.Kind() == reflect.Ptr {
+		pointer = true
+		v = reflect.Indirect(v)
+	}
+	if pw, ok := w.(PointerWalker); ok {
+		if err := pw.Pointer(pointer); err != nil {
+			return err
+		}
+	}
+
 	// We preserve the original value here because if it is an interface
 	// type, we want to pass that directly into the walkPrimitive, so that
 	// we can set it.
