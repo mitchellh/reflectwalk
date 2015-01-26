@@ -27,8 +27,12 @@ type TestPointerWalker struct {
 	Ps []bool
 }
 
-func (t *TestPointerWalker) Pointer(v bool) error {
+func (t *TestPointerWalker) PointerEnter(v bool) error {
 	t.Ps = append(t.Ps, v)
+	return nil
+}
+
+func (t *TestPointerWalker) PointerExit(v bool) error {
 	return nil
 }
 

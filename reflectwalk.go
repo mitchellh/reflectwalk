@@ -63,10 +63,10 @@ type EnterExitWalker interface {
 
 // PointerWalker implementations are notified when the value they're
 // walking is a pointer or not. Pointer is called for _every_ value whether
-// it is a pointer or not. You can use the Exit in EnterExitWalker to
-// forget the pointer value, as every Pointer will coincide with an Exit.
+// it is a pointer or not.
 type PointerWalker interface {
-	Pointer(bool) error
+	PointerEnter(bool) error
+	PointerExit(bool) error
 }
 
 // Walk takes an arbitrary value and an interface and traverses the
@@ -91,7 +91,7 @@ func Walk(data, walker interface{}) (err error) {
 	return
 }
 
-func walk(v reflect.Value, w interface{}) error {
+func walk(v reflect.Value, w interface{}) (err error) {
 	// Determine if we're receiving a pointer and if so notify the walker.
 	pointer := false
 	if v.Kind() == reflect.Ptr {
@@ -99,9 +99,17 @@ func walk(v reflect.Value, w interface{}) error {
 		v = reflect.Indirect(v)
 	}
 	if pw, ok := w.(PointerWalker); ok {
-		if err := pw.Pointer(pointer); err != nil {
-			return err
+		if err = pw.PointerEnter(pointer); err != nil {
+			return
 		}
+
+		defer func() {
+			if err != nil {
+				return
+			}
+
+			err = pw.PointerExit(pointer)
+		}()
 	}
 
 	// We preserve the original value here because if it is an interface
@@ -128,17 +136,22 @@ func walk(v reflect.Value, w interface{}) error {
 	case reflect.Int:
 		fallthrough
 	case reflect.String:
-		return walkPrimitive(originalV, w)
+		err = walkPrimitive(originalV, w)
+		return
 	case reflect.Map:
-		return walkMap(v, w)
+		err = walkMap(v, w)
+		return
 	case reflect.Slice:
-		return walkSlice(v, w)
+		err = walkSlice(v, w)
+		return
 	case reflect.Struct:
-		return walkStruct(v, w)
+		err = walkStruct(v, w)
+		return
 	case reflect.Invalid:
 		// If the original kind was an interface, just let it through.
 		if originalV.Kind() == reflect.Interface {
-			return walkPrimitive(originalV, w)
+			err = walkPrimitive(originalV, w)
+			return
 		}
 
 		fallthrough
