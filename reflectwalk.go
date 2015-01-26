@@ -17,6 +17,7 @@ const (
 	MapValue
 	Slice
 	SliceElem
+	Struct
 	StructField
 	WalkLoc
 )
@@ -48,6 +49,7 @@ type SliceWalker interface {
 // StructWalker is an interface that has methods that are called for
 // structs when a Walk is done.
 type StructWalker interface {
+	Struct(reflect.Value) error
 	StructField(reflect.StructField, reflect.Value) error
 }
 
@@ -228,6 +230,17 @@ func walkSlice(v reflect.Value, w interface{}) (err error) {
 }
 
 func walkStruct(v reflect.Value, w interface{}) (err error) {
+	ew, ewok := w.(EnterExitWalker)
+	if ewok {
+		ew.Enter(Struct)
+	}
+
+	if sw, ok := w.(StructWalker); ok {
+		if err = sw.Struct(v); err != nil {
+			return
+		}
+	}
+
 	vt := v.Type()
 	for i := 0; i < vt.NumField(); i++ {
 		sf := vt.Field(i)
@@ -253,6 +266,10 @@ func walkStruct(v reflect.Value, w interface{}) (err error) {
 		if ok {
 			ew.Exit(StructField)
 		}
+	}
+
+	if ewok {
+		ew.Exit(Struct)
 	}
 
 	return nil

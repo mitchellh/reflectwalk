@@ -91,6 +91,10 @@ type TestStructWalker struct {
 	Fields []string
 }
 
+func (t *TestStructWalker) Struct(v reflect.Value) error {
+	return nil
+}
+
 func (t *TestStructWalker) StructField(sf reflect.StructField, v reflect.Value) error {
 	if t.Fields == nil {
 		t.Fields = make([]string, 0, 1)
@@ -197,6 +201,7 @@ func TestWalk_EnterExit(t *testing.T) {
 
 	expected := []Location{
 		WalkLoc,
+		Struct,
 		StructField,
 		StructField,
 		StructField,
@@ -207,6 +212,7 @@ func TestWalk_EnterExit(t *testing.T) {
 		MapValue,
 		Map,
 		StructField,
+		Struct,
 		WalkLoc,
 	}
 	if !reflect.DeepEqual(w.Locs, expected) {
