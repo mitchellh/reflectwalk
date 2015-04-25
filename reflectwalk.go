@@ -140,7 +140,7 @@ func walk(v reflect.Value, w interface{}) (err error) {
 			return
 		}
 
-		fallthrough
+		return
 	default:
 		panic("unsupported type: " + k.String())
 	}
