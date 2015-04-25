@@ -8,20 +8,6 @@ import (
 	"reflect"
 )
 
-type Location uint
-
-const (
-	None Location = iota
-	Map
-	MapKey
-	MapValue
-	Slice
-	SliceElem
-	Struct
-	StructField
-	WalkLoc
-)
-
 // PrimitiveWalker implementations are able to handle primitive values
 // within complex structures. Primitive values are numbers, strings,
 // booleans, funcs, chans.
