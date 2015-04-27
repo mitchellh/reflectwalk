@@ -122,6 +122,8 @@ func walk(v reflect.Value, w interface{}) (err error) {
 	case reflect.Int:
 		fallthrough
 	case reflect.String:
+		fallthrough
+	case reflect.Invalid:
 		err = walkPrimitive(originalV, w)
 		return
 	case reflect.Map:
@@ -132,14 +134,6 @@ func walk(v reflect.Value, w interface{}) (err error) {
 		return
 	case reflect.Struct:
 		err = walkStruct(v, w)
-		return
-	case reflect.Invalid:
-		// If the original kind was an interface, just let it through.
-		if originalV.Kind() == reflect.Interface {
-			err = walkPrimitive(originalV, w)
-			return
-		}
-
 		return
 	default:
 		panic("unsupported type: " + k.String())
