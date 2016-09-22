@@ -65,8 +65,8 @@ func (t *TestPrimitiveReplaceWalker) Primitive(v reflect.Value) error {
 
 type TestMapWalker struct {
 	MapVal reflect.Value
-	Keys   []string
-	Values []string
+	Keys   map[string]bool
+	Values map[string]bool
 }
 
 func (t *TestMapWalker) Map(m reflect.Value) error {
@@ -76,12 +76,12 @@ func (t *TestMapWalker) Map(m reflect.Value) error {
 
 func (t *TestMapWalker) MapElem(m, k, v reflect.Value) error {
 	if t.Keys == nil {
-		t.Keys = make([]string, 0, 1)
-		t.Values = make([]string, 0, 1)
+		t.Keys = make(map[string]bool)
+		t.Values = make(map[string]bool)
 	}
 
-	t.Keys = append(t.Keys, k.Interface().(string))
-	t.Values = append(t.Values, v.Interface().(string))
+	t.Keys[k.Interface().(string)] = true
+	t.Values[v.Interface().(string)] = true
 	return nil
 }
 
@@ -294,12 +294,12 @@ func TestWalk_Map(t *testing.T) {
 		t.Fatalf("Bad: %#v", w.MapVal.Interface())
 	}
 
-	expectedK := []string{"foo", "bar"}
+	expectedK := map[string]bool{"foo": true, "bar": true}
 	if !reflect.DeepEqual(w.Keys, expectedK) {
 		t.Fatalf("Bad keys: %#v", w.Keys)
 	}
 
-	expectedV := []string{"foov", "barv"}
+	expectedV := map[string]bool{"foov": true, "barv": true}
 	if !reflect.DeepEqual(w.Values, expectedV) {
 		t.Fatalf("Bad values: %#v", w.Values)
 	}
@@ -373,5 +373,66 @@ func TestWalk_Struct(t *testing.T) {
 	expected := []string{"Foo", "Bar"}
 	if !reflect.DeepEqual(w.Fields, expected) {
 		t.Fatalf("bad: %#v", w.Fields)
+	}
+}
+
+type TestInterfaceMapWalker struct {
+	MapVal reflect.Value
+	Keys   map[string]bool
+	Values map[interface{}]bool
+}
+
+func (t *TestInterfaceMapWalker) Map(m reflect.Value) error {
+	t.MapVal = m
+	return nil
+}
+
+func (t *TestInterfaceMapWalker) MapElem(m, k, v reflect.Value) error {
+	if t.Keys == nil {
+		t.Keys = make(map[string]bool)
+		t.Values = make(map[interface{}]bool)
+	}
+
+	t.Keys[k.Interface().(string)] = true
+	t.Values[v.Interface()] = true
+	return nil
+}
+
+func TestWalk_MapWithPointers(t *testing.T) {
+	w := new(TestInterfaceMapWalker)
+
+	type S struct {
+		Foo map[string]interface{}
+	}
+
+	a := "a"
+	b := "b"
+
+	data := &S{
+		Foo: map[string]interface{}{
+			"foo": &a,
+			"bar": &b,
+			"baz": 11,
+			"zab": (*int)(nil),
+		},
+	}
+
+	err := Walk(data, w)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(w.MapVal.Interface(), data.Foo) {
+		t.Fatalf("Bad: %#v", w.MapVal.Interface())
+	}
+
+	expectedK := map[string]bool{"foo": true, "bar": true, "baz": true, "zab": true}
+	if !reflect.DeepEqual(w.Keys, expectedK) {
+		t.Fatalf("Bad keys: %#v", w.Keys)
+	}
+
+	expectedV := map[interface{}]bool{&a: true, &b: true, 11: true, (*int)(nil): true}
+	if !reflect.DeepEqual(w.Values, expectedV) {
+		t.Fatalf("Bad values: %#v", w.Values)
 	}
 }
