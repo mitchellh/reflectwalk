@@ -375,3 +375,63 @@ func TestWalk_Struct(t *testing.T) {
 		t.Fatalf("bad: %#v", w.Fields)
 	}
 }
+
+type TestInterfaceMapWalker struct {
+	MapVal reflect.Value
+	Keys   []string
+	Values []interface{}
+}
+
+func (t *TestInterfaceMapWalker) Map(m reflect.Value) error {
+	t.MapVal = m
+	return nil
+}
+
+func (t *TestInterfaceMapWalker) MapElem(m, k, v reflect.Value) error {
+	if t.Keys == nil {
+		t.Keys = make([]string, 0, 1)
+		t.Values = make([]interface{}, 0, 1)
+	}
+
+	t.Keys = append(t.Keys, k.Interface().(string))
+	t.Values = append(t.Values, v.Interface())
+	return nil
+}
+
+func TestWalk_MapWithPointers(t *testing.T) {
+	w := new(TestInterfaceMapWalker)
+
+	type S struct {
+		Foo map[string]interface{}
+	}
+
+	a := "a"
+	b := "b"
+
+	data := &S{
+		Foo: map[string]interface{}{
+			"foo": &a,
+			"bar": &b,
+			"baz": 11,
+		},
+	}
+
+	err := Walk(data, w)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(w.MapVal.Interface(), data.Foo) {
+		t.Fatalf("Bad: %#v", w.MapVal.Interface())
+	}
+
+	expectedK := []string{"foo", "bar", "baz"}
+	if !reflect.DeepEqual(w.Keys, expectedK) {
+		t.Fatalf("Bad keys: %#v", w.Keys)
+	}
+
+	expectedV := []interface{}{&a, &b, 11}
+	if !reflect.DeepEqual(w.Values, expectedV) {
+		t.Fatalf("Bad values: %#v", w.Values)
+	}
+}
