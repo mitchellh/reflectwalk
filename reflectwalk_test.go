@@ -352,6 +352,37 @@ func TestWalk_Slice(t *testing.T) {
 	}
 }
 
+func TestWalk_SliceWithPtr(t *testing.T) {
+	w := new(TestSliceWalker)
+
+	// This is key, the panic only happened when the slice field was
+	// an interface!
+	type I interface{}
+
+	type S struct {
+		Foo []I
+	}
+
+	type Empty struct{}
+
+	data := &S{
+		Foo: []I{&Empty{}},
+	}
+
+	err := Walk(data, w)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if !reflect.DeepEqual(w.SliceVal.Interface(), data.Foo) {
+		t.Fatalf("bad: %#v", w.SliceVal.Interface())
+	}
+
+	if w.Count != 1 {
+		t.Fatalf("Bad count: %d", w.Count)
+	}
+}
+
 func TestWalk_Struct(t *testing.T) {
 	w := new(TestStructWalker)
 
