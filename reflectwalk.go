@@ -208,6 +208,12 @@ func walkSlice(v reflect.Value, w interface{}) (err error) {
 	for i := 0; i < v.Len(); i++ {
 		elem := v.Index(i)
 
+		// if the value type is an interface, we need to extract the Elem
+		// for the next call to walk
+		if elem.Kind() == reflect.Interface {
+			elem = elem.Elem()
+		}
+
 		if sw, ok := w.(SliceWalker); ok {
 			if err := sw.SliceElem(i, elem); err != nil {
 				return err
