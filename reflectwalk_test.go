@@ -400,17 +400,33 @@ func TestWalk_SliceWithPtr(t *testing.T) {
 	}
 }
 
+type testErr struct{}
+
+func (t *testErr) Error() string {
+	return "test error"
+}
+
 func TestWalk_Struct(t *testing.T) {
 	w := new(TestStructWalker)
 
+	// This makes sure we can also walk over pointer-to-pointers, and the ever
+	// so rare pointer-to-interface
 	type S struct {
 		Foo string
-		Bar string
+		Bar *string
+		Baz **string
+		Err *error
 	}
+
+	bar := "ptr"
+	baz := &bar
+	e := error(&testErr{})
 
 	data := &S{
 		Foo: "foo",
-		Bar: "bar",
+		Bar: &bar,
+		Baz: &baz,
+		Err: &e,
 	}
 
 	err := Walk(data, w)
@@ -418,7 +434,7 @@ func TestWalk_Struct(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected := []string{"Foo", "Bar"}
+	expected := []string{"Foo", "Bar", "Baz", "Err"}
 	if !reflect.DeepEqual(w.Fields, expected) {
 		t.Fatalf("bad: %#v", w.Fields)
 	}
