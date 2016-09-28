@@ -192,6 +192,23 @@ func TestWalk_Basic_Replace(t *testing.T) {
 	}
 }
 
+func TestWalk_Basic_ReplaceInterface(t *testing.T) {
+	w := new(TestPrimitiveReplaceWalker)
+
+	type S struct {
+		Foo []interface{}
+	}
+
+	data := &S{
+		Foo: []interface{}{"foo"},
+	}
+
+	err := Walk(data, w)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+}
+
 func TestWalk_EnterExit(t *testing.T) {
 	w := new(TestEnterExitWalker)
 
