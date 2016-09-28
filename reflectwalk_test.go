@@ -24,7 +24,8 @@ func (t *TestEnterExitWalker) Exit(l Location) error {
 }
 
 type TestPointerWalker struct {
-	Ps []bool
+	Ps    []bool
+	exits int
 }
 
 func (t *TestPointerWalker) PointerEnter(v bool) error {
@@ -33,6 +34,7 @@ func (t *TestPointerWalker) PointerEnter(v bool) error {
 }
 
 func (t *TestPointerWalker) PointerExit(v bool) error {
+	t.exits++
 	return nil
 }
 
@@ -327,10 +329,15 @@ func TestWalk_Pointer(t *testing.T) {
 
 	type S struct {
 		Foo string
+		Bar *string
+		Baz **string
 	}
 
+	s := ""
+	sp := &s
+
 	data := &S{
-		Foo: "foo",
+		Baz: &sp,
 	}
 
 	err := Walk(data, w)
@@ -338,9 +345,39 @@ func TestWalk_Pointer(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected := []bool{true, false}
+	// The values hsould be seen in this order, setting the pointer bools:
+	// S    true
+	// Foo  false
+	// Bar  true
+	// Baz  true
+	// *Baz true
+	expected := []bool{true, false, true, true, true}
 	if !reflect.DeepEqual(w.Ps, expected) {
 		t.Fatalf("bad: %#v", w.Ps)
+	}
+	if w.exits != len(w.Ps) {
+		t.Fatalf("number of Enter (%d) and Exit (%d) calls don't match", len(w.Ps), w.exits)
+	}
+}
+
+func TestWalk_PointerPointer(t *testing.T) {
+	w := new(TestPointerWalker)
+
+	s := ""
+	sp := &s
+	pp := &sp
+
+	err := Walk(pp, w)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := []bool{true, true}
+	if !reflect.DeepEqual(w.Ps, expected) {
+		t.Fatalf("bad: %#v", w.Ps)
+	}
+	if w.exits != len(w.Ps) {
+		t.Fatalf("number of Enter (%d) and Exit (%d) calls don't match", len(w.Ps), w.exits)
 	}
 }
 
