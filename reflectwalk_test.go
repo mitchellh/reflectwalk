@@ -1,6 +1,7 @@
 package reflectwalk
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -24,17 +25,22 @@ func (t *TestEnterExitWalker) Exit(l Location) error {
 }
 
 type TestPointerWalker struct {
-	Ps    []bool
-	exits int
+	enters []bool
+	depth  int
+	exits  int
 }
 
 func (t *TestPointerWalker) PointerEnter(v bool) error {
-	t.Ps = append(t.Ps, v)
+	t.enters = append(t.enters, v)
+	t.depth++
 	return nil
 }
 
 func (t *TestPointerWalker) PointerExit(v bool) error {
 	t.exits++
+	if t.enters[t.depth-1] != v {
+		return fmt.Errorf("bad pointer exit %t at depth %d", v, t.depth)
+	}
 	return nil
 }
 
@@ -352,11 +358,11 @@ func TestWalk_Pointer(t *testing.T) {
 	// Baz  true
 	// *Baz true
 	expected := []bool{true, false, true, true, true}
-	if !reflect.DeepEqual(w.Ps, expected) {
-		t.Fatalf("bad: %#v", w.Ps)
+	if !reflect.DeepEqual(w.enters, expected) {
+		t.Fatalf("bad: %#v", w.enters)
 	}
-	if w.exits != len(w.Ps) {
-		t.Fatalf("number of Enter (%d) and Exit (%d) calls don't match", len(w.Ps), w.exits)
+	if w.exits != len(w.enters) {
+		t.Fatalf("number of enters (%d) and exits (%d) don't match", len(w.enters), w.exits)
 	}
 }
 
@@ -373,11 +379,11 @@ func TestWalk_PointerPointer(t *testing.T) {
 	}
 
 	expected := []bool{true, true}
-	if !reflect.DeepEqual(w.Ps, expected) {
-		t.Fatalf("bad: %#v", w.Ps)
+	if !reflect.DeepEqual(w.enters, expected) {
+		t.Fatalf("bad: %#v", w.enters)
 	}
-	if w.exits != len(w.Ps) {
-		t.Fatalf("number of Enter (%d) and Exit (%d) calls don't match", len(w.Ps), w.exits)
+	if w.exits != len(w.enters) {
+		t.Fatalf("number of enters (%d) and exits (%d) don't match", len(w.enters), w.exits)
 	}
 }
 

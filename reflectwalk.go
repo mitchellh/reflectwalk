@@ -107,13 +107,13 @@ func walk(v reflect.Value, w interface{}) (err error) {
 				return
 			}
 
-			defer func() {
+			defer func(pointer bool) {
 				if err != nil {
 					return
 				}
 
 				err = pw.PointerExit(pointer)
-			}()
+			}(pointer)
 		}
 
 		if pointer {
