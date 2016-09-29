@@ -25,22 +25,27 @@ func (t *TestEnterExitWalker) Exit(l Location) error {
 }
 
 type TestPointerWalker struct {
-	enters []bool
-	depth  int
-	exits  int
+	pointers []bool
+	count    int
+	enters   int
+	exits    int
 }
 
 func (t *TestPointerWalker) PointerEnter(v bool) error {
-	t.enters = append(t.enters, v)
-	t.depth++
+	t.pointers = append(t.pointers, v)
+	t.enters++
+	if v {
+		t.count++
+	}
 	return nil
 }
 
 func (t *TestPointerWalker) PointerExit(v bool) error {
 	t.exits++
-	if t.enters[t.depth-1] != v {
-		return fmt.Errorf("bad pointer exit %t at depth %d", v, t.depth)
+	if t.pointers[len(t.pointers)-1] != v {
+		return fmt.Errorf("bad pointer exit '%t' at exit %d", v, t.exits)
 	}
+	t.pointers = t.pointers[:len(t.pointers)-1]
 	return nil
 }
 
@@ -351,18 +356,16 @@ func TestWalk_Pointer(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	// The values hsould be seen in this order, setting the pointer bools:
-	// S    true
-	// Foo  false
-	// Bar  true
-	// Baz  true
-	// *Baz true
-	expected := []bool{true, false, true, true, true}
-	if !reflect.DeepEqual(w.enters, expected) {
-		t.Fatalf("bad: %#v", w.enters)
+	if w.enters != 5 {
+		t.Fatal("expected 4 values, saw", w.enters)
 	}
-	if w.exits != len(w.enters) {
-		t.Fatalf("number of enters (%d) and exits (%d) don't match", len(w.enters), w.exits)
+
+	if w.count != 4 {
+		t.Fatal("exptec 3 pointers, saw", w.count)
+	}
+
+	if w.exits != w.enters {
+		t.Fatalf("number of enters (%d) and exits (%d) don't match", w.enters, w.exits)
 	}
 }
 
@@ -378,12 +381,16 @@ func TestWalk_PointerPointer(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected := []bool{true, true}
-	if !reflect.DeepEqual(w.enters, expected) {
-		t.Fatalf("bad: %#v", w.enters)
+	if w.enters != 2 {
+		t.Fatal("expected 2 values, saw", w.enters)
 	}
-	if w.exits != len(w.enters) {
-		t.Fatalf("number of enters (%d) and exits (%d) don't match", len(w.enters), w.exits)
+
+	if w.count != 2 {
+		t.Fatal("expected 2 pointers, saw", w.count)
+	}
+
+	if w.exits != w.enters {
+		t.Fatalf("number of enters (%d) and exits (%d) don't match", w.enters, w.exits)
 	}
 }
 
