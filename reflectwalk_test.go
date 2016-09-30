@@ -58,6 +58,15 @@ func (t *TestPrimitiveWalker) Primitive(v reflect.Value) error {
 	return nil
 }
 
+type TestInterfaceWalker struct {
+	Types []reflect.Type
+}
+
+func (t *TestInterfaceWalker) Interface(v reflect.Value) error {
+	t.Types = append(t.Types, v.Type())
+	return nil
+}
+
 type TestPrimitiveCountWalker struct {
 	Count int
 }
@@ -609,5 +618,31 @@ func TestWalk_StructWithSkipEntry(t *testing.T) {
 		if s.Fields != 1 {
 			t.Fatalf("bad: %d", s.Fields)
 		}
+	}
+}
+
+func TestWalk_walkInterface(t *testing.T) {
+	w := new(TestInterfaceWalker)
+
+	type S struct {
+		A interface{}
+		B fmt.Stringer
+		C error
+	}
+
+	data := &S{}
+
+	err := Walk(data, w)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	expected := []reflect.Type{
+		reflect.TypeOf((*interface{})(nil)).Elem(),
+		reflect.TypeOf((*fmt.Stringer)(nil)).Elem(),
+		reflect.TypeOf((*error)(nil)).Elem(),
+	}
+	if !reflect.DeepEqual(w.Types, expected) {
+		t.Fatalf("bad: %#v", w.Types)
 	}
 }
