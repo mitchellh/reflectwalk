@@ -1,6 +1,7 @@
 package reflectwalk
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 )
@@ -24,15 +25,27 @@ func (t *TestEnterExitWalker) Exit(l Location) error {
 }
 
 type TestPointerWalker struct {
-	Ps []bool
+	pointers []bool
+	count    int
+	enters   int
+	exits    int
 }
 
 func (t *TestPointerWalker) PointerEnter(v bool) error {
-	t.Ps = append(t.Ps, v)
+	t.pointers = append(t.pointers, v)
+	t.enters++
+	if v {
+		t.count++
+	}
 	return nil
 }
 
 func (t *TestPointerWalker) PointerExit(v bool) error {
+	t.exits++
+	if t.pointers[len(t.pointers)-1] != v {
+		return fmt.Errorf("bad pointer exit '%t' at exit %d", v, t.exits)
+	}
+	t.pointers = t.pointers[:len(t.pointers)-1]
 	return nil
 }
 
@@ -327,10 +340,15 @@ func TestWalk_Pointer(t *testing.T) {
 
 	type S struct {
 		Foo string
+		Bar *string
+		Baz **string
 	}
 
+	s := ""
+	sp := &s
+
 	data := &S{
-		Foo: "foo",
+		Baz: &sp,
 	}
 
 	err := Walk(data, w)
@@ -338,9 +356,41 @@ func TestWalk_Pointer(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected := []bool{true, false}
-	if !reflect.DeepEqual(w.Ps, expected) {
-		t.Fatalf("bad: %#v", w.Ps)
+	if w.enters != 5 {
+		t.Fatal("expected 4 values, saw", w.enters)
+	}
+
+	if w.count != 4 {
+		t.Fatal("exptec 3 pointers, saw", w.count)
+	}
+
+	if w.exits != w.enters {
+		t.Fatalf("number of enters (%d) and exits (%d) don't match", w.enters, w.exits)
+	}
+}
+
+func TestWalk_PointerPointer(t *testing.T) {
+	w := new(TestPointerWalker)
+
+	s := ""
+	sp := &s
+	pp := &sp
+
+	err := Walk(pp, w)
+	if err != nil {
+		t.Fatalf("err: %s", err)
+	}
+
+	if w.enters != 2 {
+		t.Fatal("expected 2 values, saw", w.enters)
+	}
+
+	if w.count != 2 {
+		t.Fatal("expected 2 pointers, saw", w.count)
+	}
+
+	if w.exits != w.enters {
+		t.Fatalf("number of enters (%d) and exits (%d) don't match", w.enters, w.exits)
 	}
 }
 
@@ -400,17 +450,33 @@ func TestWalk_SliceWithPtr(t *testing.T) {
 	}
 }
 
+type testErr struct{}
+
+func (t *testErr) Error() string {
+	return "test error"
+}
+
 func TestWalk_Struct(t *testing.T) {
 	w := new(TestStructWalker)
 
+	// This makes sure we can also walk over pointer-to-pointers, and the ever
+	// so rare pointer-to-interface
 	type S struct {
 		Foo string
-		Bar string
+		Bar *string
+		Baz **string
+		Err *error
 	}
+
+	bar := "ptr"
+	baz := &bar
+	e := error(&testErr{})
 
 	data := &S{
 		Foo: "foo",
-		Bar: "bar",
+		Bar: &bar,
+		Baz: &baz,
+		Err: &e,
 	}
 
 	err := Walk(data, w)
@@ -418,7 +484,7 @@ func TestWalk_Struct(t *testing.T) {
 		t.Fatalf("err: %s", err)
 	}
 
-	expected := []string{"Foo", "Bar"}
+	expected := []string{"Foo", "Bar", "Baz", "Err"}
 	if !reflect.DeepEqual(w.Fields, expected) {
 		t.Fatalf("bad: %#v", w.Fields)
 	}
