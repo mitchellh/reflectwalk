@@ -550,3 +550,64 @@ func TestWalk_MapWithPointers(t *testing.T) {
 		t.Fatalf("Bad values: %#v", w.Values)
 	}
 }
+
+type TestStructWalker_fieldSkip struct {
+	Skip   bool
+	Fields int
+}
+
+func (t *TestStructWalker_fieldSkip) Enter(l Location) error {
+	if l == StructField {
+		t.Fields++
+	}
+
+	return nil
+}
+
+func (t *TestStructWalker_fieldSkip) Exit(Location) error {
+	return nil
+}
+
+func (t *TestStructWalker_fieldSkip) Struct(v reflect.Value) error {
+	return nil
+}
+
+func (t *TestStructWalker_fieldSkip) StructField(sf reflect.StructField, v reflect.Value) error {
+	if t.Skip && sf.Name[0] == '_' {
+		return SkipEntry
+	}
+
+	return nil
+}
+
+func TestWalk_StructWithSkipEntry(t *testing.T) {
+	data := &struct {
+		Foo, _Bar int
+	}{
+		Foo:  1,
+		_Bar: 2,
+	}
+
+	{
+		var s TestStructWalker_fieldSkip
+		if err := Walk(data, &s); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if s.Fields != 2 {
+			t.Fatalf("bad: %d", s.Fields)
+		}
+	}
+
+	{
+		var s TestStructWalker_fieldSkip
+		s.Skip = true
+		if err := Walk(data, &s); err != nil {
+			t.Fatalf("err: %s", err)
+		}
+
+		if s.Fields != 1 {
+			t.Fatalf("bad: %d", s.Fields)
+		}
+	}
+}

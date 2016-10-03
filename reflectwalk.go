@@ -4,7 +4,10 @@
 // those elements.
 package reflectwalk
 
-import "reflect"
+import (
+	"errors"
+	"reflect"
+)
 
 // PrimitiveWalker implementations are able to handle primitive values
 // within complex structures. Primitive values are numbers, strings,
@@ -52,6 +55,13 @@ type PointerWalker interface {
 	PointerEnter(bool) error
 	PointerExit(bool) error
 }
+
+// SkipEntry can be returned from walk functions to skip walking
+// the value of this field. This is only valid in the following functions:
+//
+//   - StructField: skips walking the struct value
+//
+var SkipEntry = errors.New("skip this entry")
 
 // Walk takes an arbitrary value and an interface and traverses the
 // value, calling callbacks on the interface if they are supported.
@@ -282,6 +292,12 @@ func walkStruct(v reflect.Value, w interface{}) (err error) {
 
 		if sw, ok := w.(StructWalker); ok {
 			err = sw.StructField(sf, f)
+
+			// SkipEntry just pretends this field doesn't even exist
+			if err == SkipEntry {
+				continue
+			}
+
 			if err != nil {
 				return
 			}
