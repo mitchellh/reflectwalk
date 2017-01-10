@@ -39,7 +39,7 @@ type SliceWalker interface {
 	SliceElem(int, reflect.Value) error
 }
 
-// SliceWalker implementations are able to handle array elements found
+// ArrayWalker implementations are able to handle array elements found
 // within complex structures.
 type ArrayWalker interface {
 	Array(reflect.Value) error
