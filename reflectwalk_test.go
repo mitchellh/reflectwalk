@@ -49,6 +49,20 @@ func (t *TestPointerWalker) PointerExit(v bool) error {
 	return nil
 }
 
+type TestPointerValueWalker struct {
+	skip     bool
+	pointers []reflect.Type
+}
+
+func (t *TestPointerValueWalker) Pointer(v reflect.Value) error {
+	t.pointers = append(t.pointers, v.Type())
+	if t.skip {
+		return SkipEntry
+	}
+
+	return nil
+}
+
 type TestPrimitiveWalker struct {
 	Value reflect.Value
 }
@@ -479,6 +493,61 @@ func TestWalk_PointerPointer(t *testing.T) {
 
 	if w.exits != w.enters {
 		t.Fatalf("number of enters (%d) and exits (%d) don't match", w.enters, w.exits)
+	}
+}
+
+func TestWalk_PointerValue(t *testing.T) {
+	type X struct{}
+	type T struct {
+		x *X
+	}
+
+	v := &T{x: &X{}}
+
+	expected := []reflect.Type{
+		reflect.TypeOf(v),
+		reflect.TypeOf(v.x),
+	}
+
+	w := new(TestPointerValueWalker)
+	err := Walk(v, w)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !reflect.DeepEqual(expected, w.pointers) {
+		t.Fatalf("unexpected pointer order or length (expected len=%d, actual len=%d)", len(expected), len(w.pointers))
+	}
+}
+
+func TestWalk_PointerValueSkip(t *testing.T) {
+	type T struct{}
+	type W struct {
+		TestPointerValueWalker
+		TestPointerWalker
+	}
+
+	v := &T{}
+	w := &W{
+		TestPointerValueWalker: TestPointerValueWalker{
+			skip: true,
+		},
+	}
+	err := Walk(v, w)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(w.TestPointerValueWalker.pointers) != 1 {
+		t.Errorf("expected len=1, got len=%d", len(w.TestPointerValueWalker.pointers))
+	}
+
+	if w.TestPointerValueWalker.pointers[0] != reflect.TypeOf(v) {
+		t.Error("pointer value type mismatch")
+	}
+
+	if w.enters != 0 || w.exits != 0 {
+		t.Error("should have been skipped and have zero enters or exits")
 	}
 }
 
