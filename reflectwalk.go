@@ -230,6 +230,9 @@ func walkMap(v reflect.Value, w interface{}) error {
 
 		if mw, ok := w.(MapWalker); ok {
 			if err := mw.MapElem(v, k, kv); err != nil {
+				if err == SkipEntry {
+					continue
+				}
 				return err
 			}
 		}
@@ -290,6 +293,9 @@ func walkSlice(v reflect.Value, w interface{}) (err error) {
 
 		if sw, ok := w.(SliceWalker); ok {
 			if err := sw.SliceElem(i, elem); err != nil {
+				if err == SkipEntry {
+					continue
+				}
 				return err
 			}
 		}
@@ -333,6 +339,9 @@ func walkArray(v reflect.Value, w interface{}) (err error) {
 
 		if aw, ok := w.(ArrayWalker); ok {
 			if err := aw.ArrayElem(i, elem); err != nil {
+				if err == SkipEntry {
+					continue
+				}
 				return err
 			}
 		}
